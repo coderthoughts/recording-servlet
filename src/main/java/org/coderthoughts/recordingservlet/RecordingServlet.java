@@ -38,11 +38,24 @@ public class RecordingServlet extends HttpServlet {
         } else if ((val = req.getParameter("val")) != null) {
             res = recordValue(pathInfo, val);
         } else if ("getval".equals(req.getParameter("action"))) {
-            res = getGetLastValue(pathInfo);
+            long maxage = 365 * 24 * 60 * 60 * 1000; // one year
+            try {
+                maxage = Long.parseLong(req.getParameter("maxage"));
+                maxage = maxage * 1000; // convert seconds to milliseconds
+            } catch (NumberFormatException nfe) {
+                // no maxage
+            }
+            res = getGetLastValue(pathInfo, maxage);
         } else {
             res = usage();
         }
 
+        if (res == null) {
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        res = "<HTML><BODY>" + res + "</BODY></HTML>";
         resp.setHeader("Content-Type", "text/html");
         resp.setHeader("Content-Length", Integer.toString(res.length()));
 
@@ -55,7 +68,7 @@ public class RecordingServlet extends HttpServlet {
         if (records == null)
             return "No records for: " + pathInfo;
 
-        StringBuilder sb = new StringBuilder("Records for");
+        StringBuilder sb = new StringBuilder("Records for: ");
         sb.append(pathInfo);
         sb.append("<UL>");
         for (Recording r : records) {
@@ -79,11 +92,16 @@ public class RecordingServlet extends HttpServlet {
         return "Recorded: " + val;
     }
 
-    private String getGetLastValue(String pathInfo) {
+    private String getGetLastValue(String pathInfo, long maxage) {
         List<Recording> records = topics.get(pathInfo);
         if (records == null || records.size() == 0)
-            return ""; // TODO 404
-        return records.get(records.size() - 1).getValue();
+            return null; // will cause 404
+
+        Recording newest = records.get(records.size() - 1);
+        if (newest.getTimestamp().getTime() + maxage < System.currentTimeMillis()) {
+            return null; // too old, throw 404
+        }
+        return newest.getValue();
     }
 
     private String usage() {
@@ -91,6 +109,8 @@ public class RecordingServlet extends HttpServlet {
                 + "<UL><LI>/token: list all recordings for this token"
                 + "<LI>/token?val=someval: record this value for this token"
                 + "<LI>/token?action=getval: get the last value for this token or 404 if there is no value."
+                + "<LI>/token?action=getval&maxage={seconds}: get the last value if not older than the specified number of seconds. "
+                + "404 if there is no value or if it is too old."
                 + "</UL>";
     }
 }

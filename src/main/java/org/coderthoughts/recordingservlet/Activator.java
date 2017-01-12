@@ -11,8 +11,6 @@ public class Activator implements BundleActivator {
 
     @Override
     public void start(BundleContext context) throws Exception {
-        System.out.println("*** HEllo World");
-
         st = new ServiceTracker<HttpService, HttpService>(context, HttpService.class, null) {
             @Override
             public HttpService addingService(ServiceReference<HttpService> reference) {
