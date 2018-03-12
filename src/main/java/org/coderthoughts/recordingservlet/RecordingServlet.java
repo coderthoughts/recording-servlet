@@ -20,9 +20,6 @@ public class RecordingServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-//        PrintWriter writer = resp.getWriter();
-//        writer.write("<HTML><BODY><H1>Hi THere</H1></BODY></HTML>");
-
         String pathInfo = req.getPathInfo();
         if (pathInfo == null)
             pathInfo = "";
